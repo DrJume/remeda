@@ -15,13 +15,20 @@ const DESCENDING_COMPARATOR = <T>(x: T, y: T) => x < y;
 
 /**
  * Sorts the list according to the supplied functions and directions.
- * Sorting is based on a native `sort` function. It's not guaranteed to be stable.
+ * Sorting is based on a native `sort` function. It's not guaranteed to be
+ * stable.
  *
- * Directions are applied to functions in order and default to ascending if not specified.
+ * Directions are applied to functions in order and default to ascending if not
+ * specified.
+ *
+ * To maintain the shape of the input (e.g. if the array is NonEmpty), and/or to
+ * support more complex arrays and tuple types use the `strict` flavour.
+ *
  * @param sort first sort rule
  * @param sortRules additional sort rules
  * @signature
- *    R.sortBy(...sorts)(array)
+ *    R.sortBy(sortRule, ...otherSortRules)(array)
+ *    R.sortBy.strict(sortRule, ...otherSortRules)(array)
  * @example
  *    R.pipe(
  *      [{ a: 1 }, { a: 3 }, { a: 7 }, { a: 2 }],
@@ -29,6 +36,7 @@ const DESCENDING_COMPARATOR = <T>(x: T, y: T) => x < y;
  *    ) // => [{ a: 1 }, { a: 2 }, { a: 3 }, { a: 7 }]
  * @data_last
  * @category Array
+ * @strict
  */
 export function sortBy<T>(
   ...sortRules: Readonly<NonEmptyArray<SortRule<T>>>
@@ -36,13 +44,20 @@ export function sortBy<T>(
 
 /**
  * Sorts the list according to the supplied functions and directions.
- * Sorting is based on a native `sort` function. It's not guaranteed to be stable.
+ * Sorting is based on a native `sort` function. It's not guaranteed to be
+ * stable.
  *
- * Directions are applied to functions in order and default to ascending if not specified.
+ * Directions are applied to functions in order and default to ascending if not
+ * specified.
+ *
+ * To maintain the shape of the input (e.g. if the array is NonEmpty), and/or to
+ * support more complex arrays and tuple types use the `strict` flavour.
+ *
  * @param array the array to sort
  * @param sortRules a list of mapping functions and optional directions
  * @signature
- *    R.sortBy(array, ...sorts)
+ *    R.sortBy(array, sortRule, ...otherSortRules)
+ *    R.sortBy.strict(array, sortRule, ...otherSortRules)
  * @example
  *    R.sortBy(
  *      [{ a: 1 }, { a: 3 }, { a: 7 }, { a: 2 }],
@@ -66,6 +81,7 @@ export function sortBy<T>(
  *    //   {color: 'blue', weight: 3},
  * @data_first
  * @category Array
+ * @strict
  */
 export function sortBy<T>(
   array: ReadonlyArray<T>,
@@ -92,15 +108,15 @@ export function sortBy<T>(
 interface Strict {
   <T extends IterableContainer>(
     ...sortRules: Readonly<NonEmptyArray<SortRule<T[number]>>>
-  ): (array: T) => Sorted<T>;
+  ): (array: T) => SortedBy<T>;
 
   <T extends IterableContainer>(
     array: T,
     ...sortRules: Readonly<NonEmptyArray<SortRule<T[number]>>>
-  ): Sorted<T>;
+  ): SortedBy<T>;
 }
 
-type Sorted<T extends IterableContainer> = {
+type SortedBy<T extends IterableContainer> = {
   -readonly [K in keyof T]: T[number];
 };
 

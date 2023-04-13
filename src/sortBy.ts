@@ -1,12 +1,12 @@
 import { purry } from './purry';
-import type { NonEmptyArray } from './_types';
+import type { IterableContainer, NonEmptyArray } from './_types';
 
 const ALL_DIRECTIONS = ['asc', 'desc'] as const;
 type Direction = (typeof ALL_DIRECTIONS)[number];
 
-type SortProjection<T> = (x: T) => Comparable;
 type ComparablePrimitive = number | string | boolean;
 type Comparable = ComparablePrimitive | { valueOf(): ComparablePrimitive };
+type SortProjection<T> = (x: T) => Comparable;
 type SortPair<T> = readonly [SortProjection<T>, Direction];
 type SortRule<T> = SortProjection<T> | SortPair<T>;
 
@@ -19,7 +19,7 @@ const DESCENDING_COMPARATOR = <T>(x: T, y: T) => x < y;
  *
  * Directions are applied to functions in order and default to ascending if not specified.
  * @param sort first sort rule
- * @param sorts additional sort rules
+ * @param sortRules additional sort rules
  * @signature
  *    R.sortBy(...sorts)(array)
  * @example
@@ -31,8 +31,7 @@ const DESCENDING_COMPARATOR = <T>(x: T, y: T) => x < y;
  * @category Array
  */
 export function sortBy<T>(
-  sort: SortRule<T>,
-  ...sorts: Array<SortRule<T>>
+  ...sortRules: Readonly<NonEmptyArray<SortRule<T>>>
 ): (array: ReadonlyArray<T>) => Array<T>;
 
 /**
@@ -41,7 +40,7 @@ export function sortBy<T>(
  *
  * Directions are applied to functions in order and default to ascending if not specified.
  * @param array the array to sort
- * @param sorts a list of mapping functions and optional directions
+ * @param sortRules a list of mapping functions and optional directions
  * @signature
  *    R.sortBy(array, ...sorts)
  * @example
@@ -70,18 +69,43 @@ export function sortBy<T>(
  */
 export function sortBy<T>(
   array: ReadonlyArray<T>,
-  ...sorts: Array<SortRule<T>>
+  ...sortRules: Readonly<NonEmptyArray<SortRule<T>>>
 ): Array<T>;
 
 export function sortBy<T>(
-  arrayOrSort: ReadonlyArray<T> | SortRule<T>,
-  ...sorts: Array<SortRule<T>>
+  arrayOrSortRule: ReadonlyArray<T> | SortRule<T>,
+  ...sortRules: ReadonlyArray<SortRule<T>>
 ): unknown {
-  const args = isSortRule(arrayOrSort)
-    ? [[arrayOrSort, ...sorts]]
-    : [arrayOrSort, sorts];
+  const args = isSortRule(arrayOrSortRule)
+    ? // *data-last invocation*: put all sort rules into a single array to be
+      // past as the first param.
+      [[arrayOrSortRule, ...sortRules]]
+    : // *data-first invocation*: put the arrayOrSort (which is array now) as
+      // the first param, and all the sorts (as an array) into the second param.
+      // `purry` would pick the right "flavour" based on the length of the
+      // params tuple.
+      [arrayOrSortRule, sortRules];
 
   return purry(_sortBy, args);
+}
+
+interface Strict {
+  <T extends IterableContainer>(
+    ...sortRules: Readonly<NonEmptyArray<SortRule<T[number]>>>
+  ): (array: T) => Sorted<T>;
+
+  <T extends IterableContainer>(
+    array: T,
+    ...sortRules: Readonly<NonEmptyArray<SortRule<T[number]>>>
+  ): Sorted<T>;
+}
+
+type Sorted<T extends IterableContainer> = {
+  -readonly [K in keyof T]: T[number];
+};
+
+export namespace sortBy {
+  export const strict: Strict = sortBy;
 }
 
 function isSortRule<T>(x: ReadonlyArray<T> | SortRule<T>): x is SortRule<T> {
